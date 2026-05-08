@@ -3,7 +3,6 @@ import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import process from 'node:process';
-import {fileURLToPath} from 'node:url';
 import test from 'ava';
 import nanoSpawn from 'nano-spawn';
 
@@ -14,14 +13,8 @@ const spawn = (script, arguments_, options) => {
   }));
 };
 
-// Shims import.meta.filename on Node before 20.11.0
-const __filename = fileURLToPath(import.meta.url);
-
-// Shims import.meta.dirname on Node before 20.11.0
-const __dirname = path.dirname(__filename);
-
 // Avoids "ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time"
-const importWithTypeJson = async file => JSON.parse(await fsPromises.readFile(path.resolve(__dirname, file)));
+const importWithTypeJson = async file => JSON.parse(await fsPromises.readFile(path.resolve(import.meta.dirname, file)));
 
 const packageJson = await importWithTypeJson('../package.json');
 const errorPattern = /(\.md|\.markdown|\.mdf|stdin):\d+(:\d+)? error MD\d{3}/gmv;
@@ -440,7 +433,7 @@ function getCwdConfigFileTest(extension) {
   return async t => {
     try {
       await spawn(path.resolve('..', 'markdownlint.js'), ['.'], {
-        cwd: path.join(__dirname, 'config-files', extension)
+        cwd: path.join(import.meta.dirname, 'config-files', extension)
       });
       t.fail();
     } catch (error) {
@@ -546,7 +539,7 @@ test('Custom rule from node_modules package loaded relative to cwd', async t => 
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['--rules', 'markdownlint-cli-local-test-rule', '--stdin'], {
       stdin,
-      cwd: path.join(__dirname, 'custom-rules', 'relative-to-cwd')
+      cwd: path.join(import.meta.dirname, 'custom-rules', 'relative-to-cwd')
     })
   );
   const expected = ['stdin:1 error markdownlint-cli-local-test-rule Test rule package relative to cwd broken'].join('\n');
@@ -558,7 +551,7 @@ test('Custom rule from node_modules package loaded relative to cwd', async t => 
 test('Custom rule with scoped package name via --rules', async t => {
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['--rules', '@scoped/custom-rule', 'scoped-test.md'], {
-      cwd: path.join(__dirname, 'custom-rules', 'scoped-package')
+      cwd: path.join(import.meta.dirname, 'custom-rules', 'scoped-package')
     })
   );
   const expected = ['scoped-test.md:1 error scoped-rule Scoped rule'].join('\n');
@@ -632,7 +625,7 @@ test('fixing errors with a glob yields fewer errors', async t => {
 test('.markdownlintignore is applied correctly', async t => {
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['.'], {
-      cwd: path.join(__dirname, 'markdownlintignore')
+      cwd: path.join(import.meta.dirname, 'markdownlintignore')
     })
   );
   const expected = ['incorrect.md:1:8 error MD047/single-trailing-newline Files should end with a single newline character', 'subdir/incorrect.markdown:1:8 error MD047/single-trailing-newline Files should end with a single newline character'].join('\n');
@@ -644,7 +637,7 @@ test('.markdownlintignore is applied correctly', async t => {
 test('.markdownlintignore works with semi-absolute paths', async t => {
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['./incorrect.md'], {
-      cwd: path.join(__dirname, 'markdownlintignore')
+      cwd: path.join(import.meta.dirname, 'markdownlintignore')
     })
   );
   const expected = ['./incorrect.md:1:8 error MD047/single-trailing-newline Files should end with a single newline character'].join('\n');
@@ -656,7 +649,7 @@ test('.markdownlintignore works with semi-absolute paths', async t => {
 test('--ignore-path works with .markdownlintignore', async t => {
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['--ignore-path', '.markdownlintignore', '.'], {
-      cwd: path.join(__dirname, 'markdownlintignore')
+      cwd: path.join(import.meta.dirname, 'markdownlintignore')
     })
   );
   const expected = ['incorrect.md:1:8 error MD047/single-trailing-newline Files should end with a single newline character', 'subdir/incorrect.markdown:1:8 error MD047/single-trailing-newline Files should end with a single newline character'].join('\n');
@@ -668,7 +661,7 @@ test('--ignore-path works with .markdownlintignore', async t => {
 test('--ignore-path works with .ignorefile', async t => {
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['--ignore-path', '.ignorefile', '.'], {
-      cwd: path.join(__dirname, 'markdownlintignore')
+      cwd: path.join(import.meta.dirname, 'markdownlintignore')
     })
   );
   const expected = ['incorrect.markdown:1:8 error MD047/single-trailing-newline Files should end with a single newline character'].join('\n');
@@ -681,7 +674,7 @@ test('--ignore-path fails for missing file', async t => {
   const missingFile = 'missing-file';
   const error = await t.throwsAsync(() =>
     spawn(path.resolve('..', 'markdownlint.js'), ['--ignore-path', missingFile, '.'], {
-      cwd: path.join(__dirname, 'markdownlintignore')
+      cwd: path.join(import.meta.dirname, 'markdownlintignore')
     })
   );
   t.is(error.stdout, '');
